@@ -112,15 +112,4 @@ function renderTimeline(r, nnlsRes){
   $('#timelineHistoria').innerHTML = `<div class="nz-timeline">${items}</div>`;
 }
 
-/* rasgos */
-function renderRasgos(r){
-  const wrap = $('#rasgosWrap');
-  if (!r.mapa){ wrap.innerHTML = '<div class="nz-callout"><p>Los rasgos se leen directamente del raw: con coordenadas oficiales no hay genotipos que mirar.</p></div>'; return; }
-  const filas = rasgosDesdeMapa(r.mapa, r.hebra && r.hebra.hebra);
-  const notaHebra = r.hebra ? `<div class="nz-callout"><p><strong>Hebra del fichero: ${esc(r.hebra.hebra)}</strong> — ${r.hebra.flips.toLocaleString('es-ES')} SNP reorientados al cruzar con el panel (confianza ${esc(r.hebra.confianza)}). Los rasgos ya están corregidos por orientación.</p></div>` : '';
-  wrap.innerHTML = notaHebra + filas.map(f => `<div class="nz-kpi nz-kpi--bordered genes-rasgo">
-    <span class="nz-kpi__label">${esc(f.tema)} · ${esc(f.gen)} · ${esc(f.rs)}</span>
-    <span class="nz-kpi__value">${f.gt ? esc(f.gt.split('').join('/')) : '—'}</span>
-    <span class="genes-rasgo__texto">${esc(f.texto)}</span>
-  </div>`).join('');
-}
+/* rasgos: pestaña eliminada 2026-09-17 */

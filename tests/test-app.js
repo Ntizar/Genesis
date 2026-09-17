@@ -80,10 +80,6 @@ function test(nombre, cond, detalle) {
   // identifiabilidad K36 documentada: con 797 SNP la masa se reparte pero el argmax es correcto
   test('T11 argmax K36 = k3 (ibérico)', (R.k36top[0] || '').startsWith('k3:'), R.k36top[0]);
 
-  // rasgos con el mapa del demo (el demo no tiene rs4988235 garantizado, pero la función no debe lanzar)
-  const nrasgos = await ev('rasgosDesdeMapa(state.ultimo.mapa, state.ultimo.hebra && state.ultimo.hebra.hebra).length');
-  test('T12 rasgos evaluados sin error (7)', nrasgos === 7, nrasgos);
-
   console.log('\nRESULTADO: ' + (fallos === 0 ? 'TODOS LOS TESTS OK' : fallos + ' FALLOS'));
   process.exit(fallos ? 1 : 0);
 })().catch(e => { console.error('ERROR FATAL:', e); process.exit(2); });

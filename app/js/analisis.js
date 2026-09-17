@@ -53,7 +53,7 @@ async function analizarRaw(nombre, texto, onPaso){
   if (ex.calls.length < 5000 && !/demo/i.test(nombre)) throw new Error(`Solo ${fmtNum(ex.calls.length)} SNP del panel coinciden con tu raw — cobertura insuficiente para un estudio fiable.`);
   const fit = await Motor.mle(ex.calls, state.freq);
   const hebra = detectarHebra(ex);
-  onPaso && onPaso(`Hebra del fichero: ${hebra.hebra} (confianza ${hebra.confianza}) — rasgos corregidos por orientación.`);
+  onPaso && onPaso(`Hebra del fichero: ${hebra.hebra} (confianza ${hebra.confianza}).`);
   const g25 = Motor.project([...fit.q], REG_K36_V2, REG_K36_V2_INTERCEPT);
   return {nombre: raw.name, fuente: 'raw', formato: raw.format, q: [...fit.q], g25, calls: ex.calls, flips: ex.flips, discord: ex.discord, hebra, mapa: raw.map};
 }
@@ -105,34 +105,7 @@ function vecinos(g25, n){
   return {modernas: calc(state.modern, true), antiguas: calc(state.ancient, false)};
 }
 
-/* rasgos verificables del genotipo crudo */
-/* alelo "derivado" documentado de cada variante (para contar copias) */
-/* RASGOS — tabla verificada 2026-09-17 contra Ensembl GRCh37 (base forward de cada sitio)
-   y SNPedia (orientación y fenotipo). `efecto` = alelo de efecto EN HEBRA FORWARD.
-   El genotipo del raw se normaliza a forward con detectarHebra() (flips del panel K36). */
-var RASGOS = [
-  {rs: 'rs4988235', gen: 'MCM6/LCT −13910', tema: 'Lactosa', efecto: 'T',
-   textos: ['No llevas el alelo de tolerancia −13910*T: lo más común en el mundo y lo normal en los cazadores mesolíticos europeos. La leche te puede sentar regular.',
-            'Una copia del alelo −13910*T: suele bastar para digerir leche con normalidad.',
-            'Tolerancia a la lactosa de por vida: el alelo −13910*T surgió hace ~7.500 años entre los primeros ganaderos de Europa central.']},
-  {rs: 'rs182549', gen: 'MCM6 −22018', tema: 'Lactosa', efecto: 'C',
-   textos: ['Alelo ancestral en las dos copias.', 'Una copia derivada: refuerza la persistencia de la lactasa.', 'Dos copias derivadas: refuerza la persistencia de la lactasa.']},
-  {rs: 'rs1426654', gen: 'SLC24A5', tema: 'Pigmentación', efecto: 'A',
-   textos: ['Alelo ancestral Ala111: típico de poblaciones subsaharianas, oceánicas o de América indígena.',
-            'Heterocigoto A/G: señal de mezcla de linajes recientes (norte de África, Cuerno de África, sur de Asia o América).',
-            'Dos copias A (Thr111): el alelo europeo clásico (>98 % en Iberia): pigmentación clara que llegó con los primeros agricultores.']},
-  {rs: 'rs12913832', gen: 'HERC2/OCA2', tema: 'Color de ojos', efecto: 'G',
-   textos: ['A/A: ojos marrones (lo más probable, ~80 %).', 'A/G: ojos verdes/avellana o marrón claro.', 'G/G: ojos azules en la gran mayoría de los casos.']},
-  {rs: 'rs1800562', gen: 'HFE C282Y', tema: 'Hierro', efecto: 'A',
-   textos: ['Sin la variante C282Y.', 'Portador de una copia C282Y: no la desarrollas, pero es un dato de familia (hemocromatosis hereditaria).',
-            'Dos copias C282Y: riesgo elevado de sobrecarga de hierro. Esto sí merece una analítica con tu médico.']},
-  {rs: 'rs1799945', gen: 'HFE H63D', tema: 'Hierro', efecto: 'G',
-   textos: ['Sin la variante H63D.', 'Portador de una copia H63D (~1 de cada 4 europeos): efecto leve o nulo.', 'Dos copias H63D: efecto leve; solo relevante si se combina con C282Y.']},
-  {rs: 'rs762551', gen: 'CYP1A2', tema: 'Cafeína', efecto: 'A',
-   textos: ['A/A: metabolizador lento — el café te dura más y te activa más.', 'A/C: metabolización intermedia (alelo *1F en una copia).', 'C/C: metabolizador rápido — eliminas la cafeína deprisa.']}
-];
-/* alelos posibles de cada sitio (Ensembl GRCh37) para validar la orientación */
-var ALELOS_OK = {rs4988235: 'GACT', rs182549: 'CT', rs1426654: 'AGT', rs12913832: 'ACG', rs1800562: 'GA', rs1799945: 'CGT', rs762551: 'CAG'};
+/* rasgos: eliminados a petición de David (2026-09-17) — la web es de ascendencia, no de salud. */
 
 /* ¿en qué hebra reporta este fichero? El cruce con el panel K36 ya cuenta cuántos
    SNP hay que complementar (ex.flips): si hay que dar la vuelta a >25 % del cruce,
@@ -145,25 +118,4 @@ function detectarHebra(ex){
   return {hebra: 'forward', confianza: 'media', flips: ex.flips};
 }
 
-function rasgosDesdeMapa(mapa, hebra){
-  const COMPL = {A:'T', T:'A', C:'G', G:'C'};
-  const complementar = g => g.split('').map(c => COMPL[c] || c).sort().join('');
-  const validar = (g, rs) => [...g].every(c => ALELOS_OK[rs].includes(c));
-  return RASGOS.map(r => {
-    let gt = mapa.get(r.rs);
-    if (!gt) return {...r, gt: null, nCopias: null, texto: 'No cubierto por tu raw (o rsID no presente en este fichero).'};
-    gt = gt.toUpperCase().split('').sort().join('');
-    // si el genotipo crudo no encaja con los alelos reales del sitio, el chip reporta en hebra minus: girarlo
-    if (!validar(gt, r.rs)){
-      const f = complementar(gt);
-      if (validar(f, r.rs)) gt = f;
-      else return {...r, gt, nCopias: null, texto: 'Genotipo con alelos inesperados (' + gt + ') en este sitio: se omite por seguridad.'};
-    } else if (hebra === 'minus'){
-      // hebra minus declarada y genotipo que encaja sin girar (alelos palíndromos A/T, C/G): dar la vuelta
-      const f = complementar(gt);
-      if (validar(f, r.rs)) gt = f;
-    }
-    const nCopias = [...gt].filter(c => c === r.efecto).length;
-    return {...r, gt, nCopias, texto: r.textos[nCopias]};
-  });
-}
+function rasgosDesdeMapa(mapa, hebra){ /* eliminado 2026-09-17 */ return []; }

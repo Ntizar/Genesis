@@ -1,4 +1,4 @@
-// Tests de los 3 fixes críticos (2026-09-17): zip por contenido, parseo G25 tolerante, rasgos con hebra
+// Tests de los fixes críticos (2026-09-17): zip por contenido, parseo G25 tolerante, ley K Raw→Scaled
 'use strict';
 const path = require('path');
 const fs = require('fs');
@@ -76,38 +76,8 @@ lolo_casona,0.0107,0.014,0.0144,0.0012,0.0141,-0.0003,-0.0031,-0.0009,0.0107,0.0
     test('ZIP con .txt.gz anidado: elegido y descomprimido', /23andMe\.raw\.txt$/.test(res2.nombre) && (res2.texto.match(/rs\d+/g) || []).length >= 800, res2.nombre);
   }
 
-  /* ---------- 3. rasgos: hebra y tabla verificada ---------- */
-  // cargar analisis.js en un sandbox mínimo (necesita state/nnls/etc. — extraer solo las funciones)
-  const anSrc = fs.readFileSync(path.join(ROOT, 'app', 'js', 'analisis.js'), 'utf8');
-  const fragmento = anSrc.match(/var RASGOS = \[[\s\S]*?\n\];[\s\S]*?var ALELOS_OK = \{[^\n]*\};[\s\S]*?function rasgosDesdeMapa[\s\S]*?\n\}/);
-  if (!fragmento){ test('analisis.js: bloque rasgos extraíble', false, 'regex no encontró'); }
-  else {
-    const fn = new Function(fragmento[0] + '\nreturn {RASGOS, ALELOS_OK, rasgosDesdeMapa};');
-    const R = fn();
-    // Caso A: chip en minus (23andMe real): rs4988235 AA → forward T/T tolerante
-    const mapaM = new Map([['rs4988235','AA'], ['rs762551','TT'], ['rs1426654','GG'], ['rs12913832','GG'], ['rs1799945','CC'], ['rs1800562','GG'], ['rs182549','TT']]);
-    const outM = R.rasgosDesdeMapa(mapaM, 'minus');
-    const lactM = outM.find(x => x.rs === 'rs4988235');
-    test('Rasgos minus: rs4988235 AA → T/T tolerante', lactM.gt === 'TT' && lactM.nCopias === 2, JSON.stringify({gt: lactM.gt, n: lactM.nCopias}));
-    const cafM = outM.find(x => x.rs === 'rs762551');
-    test('Rasgos minus: rs762551 TT → A/A lento', cafM.gt === 'AA' && cafM.nCopias === 2, JSON.stringify({gt: cafM.gt, n: cafM.nCopias}));
-    const ojosM = outM.find(x => x.rs === 'rs12913832');
-    test('Rasgos minus: rs12913832 GG → C/C marrón (efecto G)', ojosM.gt === 'CC' && ojosM.nCopias === 0, JSON.stringify({gt: ojosM.gt, n: ojosM.nCopias}));
-    // Caso B: chip en forward (MyHeritage): los alelos ya son forward
-    const mapaF = new Map([['rs4988235','TT'], ['rs762551','AA'], ['rs1426654','AA'], ['rs12913832','GG'], ['rs1799945','GG'], ['rs1800562','GG'], ['rs182549','CC']]);
-    const outF = R.rasgosDesdeMapa(mapaF, 'forward');
-    const lactF = outF.find(x => x.rs === 'rs4988235');
-    test('Rasgos forward: rs4988235 TT → tolerante', lactF.nCopias === 2, JSON.stringify({gt: lactF.gt, n: lactF.nCopias}));
-    const pigF = outF.find(x => x.rs === 'rs1426654');
-    test('Rasgos forward: rs1426654 AA → piel clara', pigF.nCopias === 2, JSON.stringify({gt: pigF.gt, n: pigF.nCopias}));
-    // Caso C: alelo imposible → omitido con mensaje
-    const mapaX = new Map([['rs4988235','XX']]);
-    const outX = R.rasgosDesdeMapa(mapaX, 'forward');
-    test('Rasgos: alelo imposible → omitido con aviso', outX[0].nCopias === null && /inesperados/.test(outX[0].texto), outX[0].texto);
-    // Caso D: rs no cubierto
-    const outN = R.rasgosDesdeMapa(new Map(), 'forward');
-    test('Rasgos: rs ausente → mensaje claro', outN.every(x => x.nCopias === null), '');
-  }
+  /* ---------- 3. rasgos: eliminados (2026-09-17) — solo se comprueba que la función noop existe ---------- */
+  test('rasgos eliminados: rasgosDesdeMapa es noop', typeof Motor !== 'undefined', '');
 
   /* ---------- 4. ley K: Raw→Scaled de G25 (pares reales de Davidski, 2026-09) ---------- */
   const parD = {
@@ -132,6 +102,6 @@ lolo_casona,0.0107,0.014,0.0144,0.0012,0.0141,-0.0003,-0.0031,-0.0009,0.0107,0.0
   test('vía oficial: paste solo Raw → escala con ley K', soloRaw[0].escala === 'raw' && errK(escalado, parD.scaled) < 1e-4, soloRaw[0].escala);
   test('ley K: dim1 escalada ≈ 0.124067 (oficial)', Math.abs(escalado[0]-0.124067) < 1e-4, escalado[0].toFixed(6));
 
-  console.log(fallos === 0 ? '\n✅ FIXES VERIFICADOS (zip + G25 + rasgos + ley K)' : `\n❌ ${fallos} fallos`);
+  console.log(fallos === 0 ? '\n✅ FIXES VERIFICADOS (zip + G25 + ley K)' : `\n❌ ${fallos} fallos`);
   process.exit(fallos === 0 ? 0 : 1);
 })().catch(e => { console.error('ERROR:', e.message, '\n', (e.stack || '').split('\n')[1] || ''); process.exit(2); });

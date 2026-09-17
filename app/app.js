@@ -6,7 +6,6 @@ function activarTab(id){
   $$('.nz-tab').forEach(t => t.classList.toggle('nz-tab--active', t.dataset.tab === id));
   $$('main > section').forEach(s => { s.hidden = (s.id !== 'tab-' + id); });
   if (id === 'mapa' && state.ultimo){ renderMapaVecinos(state.ultimo); renderMapaEpocas(state.ultimo.nnls); }
-  if (id === 'rasgos' && state.ultimo) renderRasgos(state.ultimo);
 }
 
 /* ---------- progreso y errores ---------- */
@@ -208,7 +207,7 @@ function init(){
       document.title = 'DEMO AUTO';
       ejecutarEstudio('demo-ibero', demoTexto(), 'raw');
     }
-    // deep-link de pestañas: ?tab=mapa (o mapas) | estudio | rasgos | carga
+    // deep-link de pestañas: ?tab=mapa (o mapas) | estudio | carga
     const mTab = location.search.match(/tab=(\w+)/);
     let tId = mTab && mTab[1];
     if (tId === 'mapas') tId = 'mapa';

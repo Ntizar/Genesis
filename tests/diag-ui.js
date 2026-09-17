@@ -14,7 +14,7 @@ const htmlSin = html.replace(/<script[^>]*src="[^"]*"[^>]*><\/script>\s*/g, '');
 const srcs = [...html.matchAll(/<script[^>]*src="([^"]+)"[^>]*><\/script>/g)].map(m => m[1]);
 // recursos CSS no hacen falta para la lógica
 
-const dom = new JSDOM(htmlSin, { url: 'http://localhost:8614/app/index.html?demo=1&tab=rasgos', runScripts: 'dangerously', pretendToBeVisual: true });
+const dom = new JSDOM(htmlSin, { url: 'http://localhost:8614/app/index.html?demo=1&tab=mapa', runScripts: 'dangerously', pretendToBeVisual: true });
 const w = dom.window;
 w.scrollTo = () => {};
 w.HTMLCanvasElement.prototype.getContext = () => null; // sin canvas: vistas.js/mapas.js deben tolerarlo

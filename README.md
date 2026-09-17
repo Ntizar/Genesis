@@ -10,14 +10,13 @@ Abre https://ntizar.github.io/Genesis/ y arrastra tu fichero raw (`.txt`, `.csv`
 
 - Pegar coordenadas G25 oficiales (Eurogenes/Vahaduo): estudio exacto contra 11.899 referencias modernas y 7.292 antiguas.
 - Lanzar la demo sintética: `?demo=1` (50% ibérico + 20% norte de Europa + 15% norte de África + 15% América).
-- Deep-links: `?tab=estudio|mapa|rasgos`.
+- Deep-links: `?tab=estudio|mapa`.
 
 ## Metodología (honesta)
 
 - El raw local se imputa a frecuencias K36 (MLE) y se proyecta a G25 25D con regresión de cresta calibrada sobre 327 HGDP. Con ~800–800.000 SNP el **pico por vecino más cercano es fiable; las proporciones entre componentes europeos son orientativas** (limitación del panel, no del método). Para proporciones exactas, usa coordenadas G25 oficiales.
 - Modelo por épocas: NNLS (Lawson-Hanson) sobre 7 pools curados de Iberia (Paleolítico → Al-Ándalus, 549 muestras antiguas).
-- Geolocalización de referencias: matching por tokens sobre 19.191 muestras (95,99% de cobertura).
-- Rasgos: variantes bien establecidas leídas directamente del raw (p.ej. rs4988235/LCT). **No es un informe médico.**
+- Geolocalización de referencias: matching por tokens sobre 19.191 muestras (95,99% de cobertura), coordenadas regionales corregidas para Iberia y sur de Francia.
 
 ## Tests
 

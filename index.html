@@ -38,7 +38,6 @@
       <div class="nz-tab nz-tab--active" data-tab="carga" role="button" tabindex="0">1 · Carga</div>
       <div class="nz-tab" data-tab="estudio" role="button" tabindex="0">2 · Estudio</div>
       <div class="nz-tab" data-tab="mapa" role="button" tabindex="0">3 · Mapas</div>
-      <div class="nz-tab" data-tab="rasgos" role="button" tabindex="0">4 · Rasgos</div>
     </div>
   </nav>
 </header>
@@ -155,17 +154,18 @@
   <section id="tab-mapa" hidden>
     <div class="nz-callout"><p>El mapa mundial se dibuja en local (Natural Earth, dominio público). El de Iberia usa cartografía del <b>IGN — Instituto Geográfico Nacional (CC BY 4.0)</b> y necesita conexión; sin ella verás los resultados igualmente.</p></div>
     <h2 class="genes-h2">Dónde encajan tus vecinos</h2>
-    <p class="genes-p genes-muted">Tus 24 vecinos modernos más próximos, geolocalizados. Círculo mayor y más azul = más cercano.</p>
+    <p class="genes-p genes-muted">Tus 24 vecinos modernos más próximos, geolocalizados. Cuanto más intenso el azul y mayor el círculo, más cerca de ti.</p>
     <div class="genes-mapa-wrap"><canvas id="mapaMundo" class="genes-mapa-canvas" aria-label="Mapa mundial de vecinos"></canvas></div>
+    <div class="genes-leyenda" id="leyendaMundo"></div>
     <h2 class="genes-h2 genes-mt">De dónde venían tus épocas</h2>
-    <p class="genes-p genes-muted">Anclas geográficas de las épocas que contribuyen a tu modelo, sobre el mapa IGN.</p>
+    <p class="genes-p genes-muted">Anclas geográficas de las épocas que contribuyen a tu modelo, sobre el mapa IGN. Pulsa una época de la leyenda para volar hasta ella.</p>
     <div id="mapaIberia" class="genes-mapa-ign"></div>
+    <div class="genes-leyenda" id="leyendaEpocas" hidden></div>
   </section>
 
   <!-- ============ RASGOS ============ -->
   <section id="tab-rasgos" hidden>
-    <div class="nz-callout nz-callout--tip"><p>Rasgos bien establecidos leídos directamente de tu raw (una variante, una posición, referencias publicadas). <b>Esto no es un informe médico</b>: es cultura genética verificable.</p></div>
-    <div id="rasgosWrap"></div>
+    <div class="nz-callout"><p>La pestaña de rasgos se retiró en 2026-09: GÉNESIS es una web de ascendencia.</p></div>
   </section>
 
 </main>
