@@ -63,10 +63,12 @@ async function ejecutarEstudio(nombre, texto, fuente){
       r = estudioDesdeG25(of.name || nombre, of.v, 'oficial' + (of.escala === 'raw' ? ' · raw (sin escalar)' : ''));
       r.vecinos = vecinos(r.g25, 25);
       r.nnls = modeloEpocas(r.g25);
+      r.modelos = modelosAlternativos(r.g25);
     } else {
       r = await analizarRaw(nombre, texto, progreso);
       r.vecinos = vecinos(r.g25, 25);
       r.nnls = modeloEpocas(r.g25);
+      r.modelos = modelosAlternativos(r.g25);
     }
     state.ultimo = r;
     state.results.push(r);
@@ -75,6 +77,7 @@ async function ejecutarEstudio(nombre, texto, fuente){
     renderDonutK36(r);
     renderVecinos(r);
     renderEpocas(r, r.nnls);
+    renderModelos(r, r.modelos);
     renderTimeline(r, r.nnls);
     renderPCA(r);
     activarTab(state.tabPedida || 'estudio');
@@ -124,6 +127,15 @@ function descargarInforme(){
   secciones.push(`<h2>Vecinos antiguos</h2><ol>` + r.vecinos.antiguas.slice(0, 15).map(x => `<li>${esc(x.name)} — ${x.dPct}</li>`).join('') + `</ol>`);
   if (r.q) secciones.push(`<h2>Composición K36</h2><ul>` + [...r.q].map((v, k) => ({k, v})).sort((a, b) => b.v - a.v).filter(x => x.v >= 0.01)
     .map(x => `<li>${esc(nombreK36(x.k))}: ${fmtPct(x.v)}</li>`).join('') + `</ul>`);
+  if (r.modelos){
+    if (r.modelos.raices) secciones.push(`<h2>Modelo de raíces profundas (ADN antiguo)</h2><ul>` +
+      r.modelos.raices.lista.map(x => `<li><b>${esc(x.etiqueta)}</b>: ${fmtPct(x.w)}</li>`).join('') +
+      `</ul><p class="genes-xs">R² ${r.modelos.raices.r2.toFixed(3)} — ${esc(r.modelos.raices.nota)}</p>`);
+    if (r.modelos.vecinos) secciones.push(`<h2>Modelo de vecinos (G25 moderno)</h2><ul>` +
+      r.modelos.vecinos.lista.map(x => `<li><b>${esc(x.name.replace(/_/g, ' '))}</b>: ${fmtPct(x.w)}</li>`).join('') +
+      `</ul><p class="genes-xs">R² ${r.modelos.vecinos.r2.toFixed(3)} — combinación óptima de las 10 poblaciones modernas más cercanas.</p>`);
+  }
+  if (r.g25) secciones.push(`<h2>Coordenadas G25 (25D, escaladas)</h2><p style="word-break:break-all;font-family:ui-monospace,monospace;font-size:.85rem">${esc(Array.from(r.g25).map(x => x.toFixed(6)).join(','))}</p><p class="genes-xs">Pégalas en Vahaduo/G25 para reproducir y comparar cualquiera de los modelos de este estudio.</p>`);
   const html = `<!DOCTYPE html><html lang="es"><head><meta charset="utf-8"><title>GÉNESIS — informe de ${esc(r.nombre)}</title>
 <style>body{font-family:system-ui,sans-serif;max-width:52rem;margin:2rem auto;padding:0 1rem;color:#0f172a}h1{color:#2563eb}h2{border-bottom:2px solid #e2e8f0;padding-bottom:.3rem;margin-top:2rem}table{border-collapse:collapse}td,th{padding:.3rem .6rem;border:1px solid #e2e8f0}</style></head><body>
 <h1>GÉNESIS — estudio de ascendencia</h1>

@@ -87,6 +87,14 @@ function geoDe(nombre){
     const p = tok.slice(0, i).join('_');
     if (g[p]) return g[p];
   }
+  // fallback por sufijo y por token suelto: 'Spanish_Girona' no debe caer en 'Spanish' (centro de España)
+  for (let i = 1; i < tok.length; i++){
+    const p = tok.slice(i).join('_');
+    if (g[p]) return g[p];
+  }
+  for (const t of [...tok].sort((a, b) => b.length - a.length)){
+    if (t.length > 3 && g[t]) return g[t];
+  }
   return null;
 }
 function vecinos(g25, n){

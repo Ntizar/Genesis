@@ -78,6 +78,21 @@ function renderEpocas(r, nnlsRes){
   $('#narraModelo').innerHTML = `<b>${esc(r.nombre)}</b>, tu genoma se explica mejor como: ` + desc.join('; ') + '.';
 }
 
+/* modelos alternativos: raíces profundas y mezcla de vecinos */
+function renderModelos(r, mod){
+  const tb = (lista, etiqueta) => tablebarHTML(lista.map(x => ({
+    nombre: etiqueta(x), valor: x.w, texto: fmtPct(x.w), color: x.color || 'var(--accent)'
+  })));
+  const rj = mod.raices;
+  $('#modeloRaices').innerHTML = tb(rj.lista, x => x.etiqueta) +
+    `<p class="genes-p genes-xs genes-muted" style="margin-top:var(--nz-space-2)">R² ${rj.r2.toFixed(3)} · error ${(rj.residuo*100).toFixed(2)} %</p>`;
+  $('#narraRaices').innerHTML = esc(rj.nota);
+  const rv = mod.vecinos;
+  $('#modeloVecinos').innerHTML = tb(rv.lista, x => x.name.replace(/:/g, ' · ').replace(/_/g, ' ')) +
+    `<p class="genes-p genes-xs genes-muted" style="margin-top:var(--nz-space-2)">R² ${rv.r2.toFixed(3)} · error ${(rv.residuo*100).toFixed(2)} %</p>`;
+  $('#narraVecinos').innerHTML = `Lectura geográfica: la combinación de poblaciones actuales que mejor reproduce tu G25. Con canciones de distancia ~0,02 cualquier combinación de vecinas es plausible; fíjate más en la coincidencia entre modelos que en el % exacto.`;
+}
+
 /* timeline histórica: épocas ordenadas con peso */
 function renderTimeline(r, nnlsRes){
   const pools = [...state.pools].sort((a, b) => a.inicio - b.inicio);

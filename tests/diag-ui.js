@@ -48,7 +48,20 @@ setTimeout(async () => {
       console.log('mapaIberia tiene pane Leaflet:', d.querySelector('#mapaIberia .leaflet-pane') ? 'sí' : 'no');
       console.log('kpiSnp:', d.getElementById('kpiSnp').textContent);
       console.log('modeloEpocas len:', d.getElementById('modeloEpocas').innerHTML.length);
-      process.exit(0);
+      const mr = d.getElementById('modeloRaices'), mv = d.getElementById('modeloVecinos');
+      console.log('modeloRaices len:', mr ? mr.innerHTML.length : 'FALTA', '| modeloVecinos len:', mv ? mv.innerHTML.length : 'FALTA');
+      const ok = mr && mv && mr.innerHTML.length > 200 && mv.innerHTML.length > 200;
+      console.log(ok ? 'MODELOS ALTERNATIVOS OK' : 'MODELOS ALTERNATIVOS FAIL');
+      let informe = 'INFORME FAIL: no ejecutado';
+      try{
+        global.window = w; global.document = w.document; global.Blob = w.Blob;
+        if (!w.URL.createObjectURL) w.URL.createObjectURL = () => 'blob:x';
+        if (!w.URL.revokeObjectURL) w.URL.revokeObjectURL = () => {};
+        w.eval('descargarInforme()');
+        informe = 'INFORME OK (descarga disparada sin error)';
+      }catch(e){ informe = 'INFORME FAIL: ' + e.message; }
+      console.log(informe);
+      process.exit(ok && informe.startsWith('INFORME OK') ? 0 : 1);
     }, 12000);
   } catch (e) { console.log('ERROR post-click:', e.message); process.exit(1); }
 }, 300);
