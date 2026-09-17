@@ -1,0 +1,5 @@
+# Fichero mínimo para comprobar el parser, no para obtener resultados
+# rsid chromosome position genotype
+rs1000000	1	1000	GG
+rs10000023	1	1001	GT
+rs10000041	1	1002	TT

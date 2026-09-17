@@ -1,0 +1,46 @@
+/* GÉNESIS — shell propio sobre Aurora 7 (solo lo específico, sin hex de marca) */
+.genes-head { background: var(--nz-bg); border-bottom: 1px solid var(--nz-gray-200); }
+.genes-logo { font-size: 1.6rem; line-height: 1; color: var(--nz-blue-600); }
+.genes-title { font-size: 1.25rem; font-weight: 700; margin: 0; letter-spacing: .04em; }
+.genes-sub { margin: 0; color: var(--nz-gray-500); font-size: .85rem; }
+.genes-badge-priv { white-space: nowrap; }
+.genes-tabs { margin-top: var(--nz-space-3); }
+.genes-main { padding-top: var(--nz-space-4); padding-bottom: var(--nz-space-6); min-height: 60vh; }
+.genes-h2 { font-size: 1.15rem; font-weight: 700; margin: var(--nz-space-6) 0 var(--nz-space-2); }
+.genes-h3 { font-size: .98rem; font-weight: 600; margin: 0 0 var(--nz-space-2); }
+.genes-mt { margin-top: var(--nz-space-5); }
+.genes-lead { color: var(--nz-gray-700); max-width: 46rem; }
+.genes-p { margin: 0 0 var(--nz-space-2); }
+.genes-xs { font-size: .8rem; }
+.genes-muted { color: var(--nz-gray-500); }
+.genes-value-sm { font-size: 1rem; }
+
+.genes-drop--over { outline: 2px dashed var(--nz-blue-500); outline-offset: -2px; background: var(--nz-blue-50); }
+.genes-progress { max-width: 30rem; margin-top: var(--nz-space-3); }
+.genes-progress__caption { margin-top: var(--nz-space-2); }
+
+.genes-modelo { max-width: 40rem; }
+.genes-narra { margin-top: var(--nz-space-2); max-width: 52rem; }
+.genes-leyenda { display: flex; flex-wrap: wrap; gap: var(--nz-space-1) var(--nz-space-3); margin-top: var(--nz-space-2); }
+.genes-leyenda__item { display: inline-flex; align-items: center; gap: .4rem; font-size: .8rem; color: var(--nz-gray-700); }
+.genes-leyenda__item i { width: .8rem; height: .8rem; border-radius: 2px; display: inline-block; }
+
+.genes-dot-yo { background: var(--nz-blue-600) !important; width: 12px !important; height: 12px !important; box-shadow: 0 0 0 3px var(--nz-blue-200); }
+.genes-acciones { margin-top: var(--nz-space-5); align-items: center; }
+
+.genes-mapa-wrap { border: 1px solid var(--nz-gray-200); border-radius: var(--nz-radius-md, 10px); overflow: hidden; background: var(--nz-blue-50); }
+.genes-mapa-canvas { display: block; width: 100%; height: 420px; }
+.genes-mapa-ign { width: 100%; height: 380px; border: 1px solid var(--nz-gray-200); border-radius: var(--nz-radius-md, 10px); overflow: hidden; }
+
+.genes-rasgo { max-width: 100%; margin-bottom: var(--nz-space-2); }
+.genes-rasgo__texto { color: var(--nz-gray-600); font-size: .85rem; max-width: 48rem; }
+
+.genes-foot { border-top: 1px solid var(--nz-gray-200); margin-top: var(--nz-space-6); padding: var(--nz-space-4) 0 var(--nz-space-6); color: var(--nz-gray-500); font-size: .8rem; }
+.genes-foot p { margin: 0 0 var(--nz-space-1); }
+
+@media (max-width: 600px) {
+  .genes-mapa-canvas { height: 300px; }
+  .genes-mapa-ign { height: 300px; }
+  .genes-badge-priv { display: none; }
+  .genes-title { font-size: 1.1rem; }
+}

@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GÉNESIS — Tu genoma cuenta 50.000 años de historia</title>
+<meta name="description" content="Estudio de ascendencia local y privado: tu raw de AncestryDNA/23andMe se convierte en un estudio completo. El ADN nunca sale de tu ordenador.">
+<link rel="stylesheet" href="css/tokens.css">
+<link rel="stylesheet" href="css/p1-layout.css">
+<link rel="stylesheet" href="css/p2-navigation.css">
+<link rel="stylesheet" href="css/p4-actions.css">
+<link rel="stylesheet" href="css/p5-forms.css">
+<link rel="stylesheet" href="css/p6-feedback.css">
+<link rel="stylesheet" href="css/p8-data.css">
+<link rel="stylesheet" href="css/p13-charts.css">
+<link rel="stylesheet" href="css/p15-apps.css">
+<link rel="stylesheet" href="vendor/leaflet.css">
+<link rel="stylesheet" href="app/app.css">
+</head>
+<body class="nz">
+<div class="nz-root">
+
+<header class="genes-head">
+  <div class="nz-container">
+    <div class="nz-cluster nz-cluster--between">
+      <div class="nz-cluster">
+        <span class="genes-logo" aria-hidden="true">⌬</span>
+        <div>
+          <h1 class="genes-title">GÉNESIS</h1>
+          <p class="genes-sub">Tu genoma cuenta 50.000 años de historia</p>
+        </div>
+      </div>
+      <span class="nz-badge nz-badge--success genes-badge-priv">100 % local · tu ADN no sale de este ordenador</span>
+    </div>
+  </div>
+  <nav class="nz-tabs genes-tabs" aria-label="Secciones del estudio">
+    <div class="nz-tabs__list" id="tabs">
+      <div class="nz-tab nz-tab--active" data-tab="carga" role="button" tabindex="0">1 · Carga</div>
+      <div class="nz-tab" data-tab="estudio" role="button" tabindex="0">2 · Estudio</div>
+      <div class="nz-tab" data-tab="mapa" role="button" tabindex="0">3 · Mapas</div>
+      <div class="nz-tab" data-tab="rasgos" role="button" tabindex="0">4 · Rasgos</div>
+    </div>
+  </nav>
+</header>
+
+<main class="nz-container genes-main">
+
+  <!-- ============ CARGA ============ -->
+  <section id="tab-carga">
+    <div class="nz-bento">
+      <div class="nz-bento__wide">
+        <h2 class="genes-h2">Tu raw, convertido en historia</h2>
+        <p class="genes-lead">Arrastra el fichero raw de 23andMe, AncestryDNA, MyHeritage, FTDNA o LivingDNA (o un VCF). Se analiza <b>en tu navegador</b>, sin subir nada a ningún servidor.</p>
+        <div class="nz-callout nz-callout--tip">
+          <p><b>Privacidad total.</b> Sin cuentas, sin servidores, sin red: el análisis ocurre en este navegador. Puedes desconectar el WiFi y funciona igual.</p>
+        </div>
+        <div class="nz-filezona genes-drop" id="filezona" tabindex="0" role="button" aria-label="Elegir fichero raw">
+          <span class="nz-filezona__icono" aria-hidden="true">🧬</span>
+          <span class="nz-filezona__texto">Arrastra tu raw aquí o toca para elegirlo</span>
+          <span class="nz-field__help">.txt · .csv · .vcf · .gz · .zip</span>
+          <input class="nz-filezona__input" type="file" id="fichero" accept=".txt,.csv,.vcf,.gz,.zip">
+        </div>
+      </div>
+      <div>
+        <h3 class="genes-h3">¿Tienes G25 oficial?</h3>
+        <p class="genes-p">Pega tus coordenadas de Eurogenes/Vahaduo (nombre + 25 números) y el estudio las usará como referencia real en vez de la estimación local.</p>
+        <label class="nz-field__label" for="g25texto">Coordenadas oficiales</label>
+        <textarea id="g25texto" class="nz-textarea" rows="5" placeholder="Ejemplo,0.0975,0.1064,0.0652,…"></textarea>
+        <button class="nz-btn nz-btn--soft-accent" id="btnG25" style="margin-top:var(--nz-space-2)">Usar coordenadas oficiales</button>
+      </div>
+      <div>
+        <h3 class="genes-h3">Demo sintética</h3>
+        <p class="genes-p">Genoma sintético determinista (50 % ibérico + 20 % norte de Europa + 15 % norte de África + 15 % América) para ver el estudio completo sin datos reales.</p>
+        <button class="nz-btn nz-btn--primary" id="btnDemo">Ejecutar demo</button>
+      </div>
+    </div>
+
+    <div id="progreso" hidden>
+      <div class="nz-progress nz-progress--with-label genes-progress"><div class="nz-progress__bar" id="barra"></div><span class="nz-progress__value" id="estadoPct">0 %</span></div>
+      <p class="genes-p genes-muted genes-progress__caption" id="estadoTxt">Abriendo el motor local…</p>
+    </div>
+    <div class="nz-callout nz-callout--warning" id="errbox" hidden><p></p></div>
+  </section>
+
+  <!-- ============ ESTUDIO ============ -->
+  <section id="tab-estudio" hidden>
+    <div class="nz-bento">
+      <div>
+        <span class="nz-kpi"><span class="nz-kpi__label">Muestra</span><span class="nz-kpi__value nz-kpi__value--brand genes-value-sm" id="kpiNombre">—</span></span>
+        <span class="nz-kpi nz-kpi--inline"><span class="nz-kpi__label">Fuente</span><span class="nz-kpi__value genes-value-sm" id="kpiFuente">—</span></span>
+      </div>
+      <div>
+        <span class="nz-kpi"><span class="nz-kpi__label">SNP usados</span><span class="nz-kpi__value nz-kpi__value--brand" id="kpiSnp">—</span></span>
+      </div>
+      <div>
+        <span class="nz-kpi"><span class="nz-kpi__label">Moderno top</span><span class="nz-kpi__value nz-kpi__value--brand genes-value-sm" id="kpiTopModerna">—</span></span>
+        <span class="nz-kpi nz-kpi--inline"><span class="nz-kpi__label">Época dominante</span><span class="nz-kpi__value genes-value-sm" id="kpiTopAntigua">—</span></span>
+      </div>
+    </div>
+
+    <h2 class="genes-h2">Modelo por épocas históricas</h2>
+    <p class="genes-p genes-muted">Tu genoma como mezcla óptima de siete épocas de la península (mínimos cuadrados no-negativos sobre las 25 dimensiones de G25). La distancia es el error residual del modelo.</p>
+    <div id="modeloEpocas" class="genes-modelo"></div>
+    <div class="nz-callout genes-narra"><p id="narraModelo"></p></div>
+
+    <div class="nz-bento">
+      <div>
+        <h3 class="genes-h3">Composición K36</h3>
+        <div id="donutK36"></div>
+        <div id="donutLeyenda" class="genes-leyenda"></div>
+      </div>
+      <div>
+        <h3 class="genes-h3">Vecinos modernos</h3>
+        <p class="genes-p genes-xs genes-muted">A menor distancia, más parecido. 11.899 referencias de todo el mundo.</p>
+        <div id="vecinosMod"></div>
+      </div>
+      <div>
+        <h3 class="genes-h3">Vecinos antiguos</h3>
+        <p class="genes-p genes-xs genes-muted">Las 7.292 muestras antiguas publicadas: ¿con quién coincides en el registro arqueogenético?</p>
+        <div id="vecinosAnc"></div>
+      </div>
+    </div>
+
+    <h2 class="genes-h2">Tus dos primeras dimensiones (PC1 · PC2)</h2>
+    <div id="pca"></div>
+    <p class="genes-p genes-muted genes-xs">PC1 separa norte-sur de Europa; PC2 este-oeste. Tu punto en azul frente a tus 12 vecinos modernos (gris claro) y antiguos (gris).</p>
+
+    <h2 class="genes-h2">Tu historia, época a época</h2>
+    <div id="timelineHistoria"></div>
+
+    <div class="nz-cluster genes-acciones">
+      <button class="nz-btn nz-btn--primary" id="btnInforme">Descargar informe HTML</button>
+      <span class="genes-p genes-xs genes-muted">Fichero autocontenido: se abre en cualquier navegador y no contiene tu raw, solo el estudio.</span>
+    </div>
+  </section>
+
+  <!-- ============ MAPAS ============ -->
+  <section id="tab-mapa" hidden>
+    <div class="nz-callout"><p>El mapa mundial se dibuja en local (Natural Earth, dominio público). El de Iberia usa cartografía del <b>IGN — Instituto Geográfico Nacional (CC BY 4.0)</b> y necesita conexión; sin ella verás los resultados igualmente.</p></div>
+    <h2 class="genes-h2">Dónde encajan tus vecinos</h2>
+    <p class="genes-p genes-muted">Tus 24 vecinos modernos más próximos, geolocalizados. Círculo mayor y más azul = más cercano.</p>
+    <div class="genes-mapa-wrap"><canvas id="mapaMundo" class="genes-mapa-canvas" aria-label="Mapa mundial de vecinos"></canvas></div>
+    <h2 class="genes-h2 genes-mt">De dónde venían tus épocas</h2>
+    <p class="genes-p genes-muted">Anclas geográficas de las épocas que contribuyen a tu modelo, sobre el mapa IGN.</p>
+    <div id="mapaIberia" class="genes-mapa-ign"></div>
+  </section>
+
+  <!-- ============ RASGOS ============ -->
+  <section id="tab-rasgos" hidden>
+    <div class="nz-callout nz-callout--tip"><p>Rasgos bien establecidos leídos directamente de tu raw (una variante, una posición, referencias publicadas). <b>Esto no es un informe médico</b>: es cultura genética verificable.</p></div>
+    <div id="rasgosWrap"></div>
+  </section>
+
+</main>
+
+<footer class="genes-foot">
+  <p><b>GÉNESIS</b> · motor K36 + ridge v2 (GPL-3.0, stevenliuyi/admix) · datasheets G25 vía Vahaduo · 1000 Genomes fase 3 · cartografía © IGN (CC BY 4.0) · Natural Earth (dominio público)</p>
+  <p>Hecho con ❤️ por David Antizar</p>
+</footer>
+</div>
+
+<script src="js/data_payload.js"></script>
+<script src="js/derived_payload.js"></script>
+<script src="js/reg_k36_v2.js"></script>
+<script src="js/pools_data.js"></script>
+<script src="js/geo_data.js"></script>
+<script src="js/k36names_data.js"></script>
+<script src="vendor/leaflet.js"></script>
+<script src="js/motor.js"></script>
+<script src="js/nnls.js"></script>
+<script src="app/js/util.js"></script>
+<script src="app/js/analisis.js"></script>
+<script src="app/js/vistas.js"></script>
+<script src="app/js/mapas.js"></script>
+<script src="app/app.js"></script>
+</body>
+</html>

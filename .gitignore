@@ -1,0 +1,16 @@
+# dependencias locales de test
+node_modules/
+package-lock.json
+package.json
+
+# sistema
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# logs
+*.log
+
+# basura temporal
+*.tmp
+mc_temp_placeholder
