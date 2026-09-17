@@ -109,6 +109,29 @@ lolo_casona,0.0107,0.014,0.0144,0.0012,0.0141,-0.0003,-0.0031,-0.0009,0.0107,0.0
     test('Rasgos: rs ausente → mensaje claro', outN.every(x => x.nCopias === null), '');
   }
 
-  console.log(fallos === 0 ? '\n✅ FIXES VERIFICADOS (zip + G25 + rasgos)' : `\n❌ ${fallos} fallos`);
+  /* ---------- 4. ley K: Raw→Scaled de G25 (pares reales de Davidski, 2026-09) ---------- */
+  const parD = {
+    scaled: [0.124067,0.146236,0.053551,0.009044,0.042469,-0.000558,-0.009635,0.001385,0.024543,0.040821,-0.002923,0.006145,-0.015312,-0.02202,0.014522,0.016971,0.014603,0.001647,-0.004148,-0.004752,0.005615,-0.005317,-0.006039,-0.002892,-0.000239],
+    raw:    [0.0109,0.0144,0.0142,0.0028,0.0138,-0.0002,-0.0041,0.0006,0.012,0.0224,-0.0018,0.0041,-0.0103,-0.016,0.0107,0.0128,0.0112,0.0013,-0.0033,-0.0038,0.0045,-0.0043,-0.0049,-0.0024,-0.0002]
+  };
+  const parL = {
+    scaled: [0.121791,0.142174,0.054305,0.003876,0.043393,-0.000837,-0.007285,-0.002077,0.021884,0.036812,-0.002923,0.008842,-0.021853,-0.017753,0.011265,0.003315,0.001304,-0.00038,0.001885,0.005002,0.002745,0.005935,-0.005916,-0.009037,0.005868],
+    raw:    [0.0107,0.014,0.0144,0.0012,0.0141,-0.0003,-0.0031,-0.0009,0.0107,0.0202,-0.0018,0.0059,-0.0147,-0.0129,0.0083,0.0025,0.001,-0.0003,0.0015,0.004,0.0022,0.0048,-0.0048,-0.0075,0.0049]
+  };
+  const esc = v => Motor.escalarRawOficial(v);
+  const errK = (a,b) => Math.max(...a.map((x,i)=>Math.abs(x-b[i])));
+  test('ley K: david raw→scaled, error máx < 1e-4', errK([...esc(parD.raw)], parD.scaled) < 1e-4, errK([...esc(parD.raw)], parD.scaled));
+  test('ley K: lolo raw→scaled, error máx < 1e-4', errK([...esc(parL.raw)], parL.scaled) < 1e-4, errK([...esc(parL.raw)], parL.scaled));
+  // vía oficial de app.js: paste con AMBOS bloques → toma Scaled; paste solo Raw → escala
+  const lin = (nom, arr) => nom + ',' + arr.join(',');
+  const pasteMix = 'Scaled\n' + lin('david_ntizar', parD.scaled) + '\nRaw\n' + lin('david_ntizar', parD.raw);
+  const mix = Motor.parseOfficialLines(pasteMix);
+  test('vía oficial: paste Scaled+Raw → usa Scaled', mix[0].escala === 'scaled' && Math.abs(mix[0].v[0]-0.124067)<1e-9, mix.map(x=>x.escala).join('|'));
+  const soloRaw = Motor.parseOfficialLines('Raw\n' + lin('david_ntizar', parD.raw));
+  const escalado = [...esc(soloRaw[0].v)];
+  test('vía oficial: paste solo Raw → escala con ley K', soloRaw[0].escala === 'raw' && errK(escalado, parD.scaled) < 1e-4, soloRaw[0].escala);
+  test('ley K: dim1 escalada ≈ 0.124067 (oficial)', Math.abs(escalado[0]-0.124067) < 1e-4, escalado[0].toFixed(6));
+
+  console.log(fallos === 0 ? '\n✅ FIXES VERIFICADOS (zip + G25 + rasgos + ley K)' : `\n❌ ${fallos} fallos`);
   process.exit(fallos === 0 ? 0 : 1);
 })().catch(e => { console.error('ERROR:', e.message, '\n', (e.stack || '').split('\n')[1] || ''); process.exit(2); });

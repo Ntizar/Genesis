@@ -162,10 +162,19 @@ function parseOfficialLines(s){
   return out;
 }
 
+// ---------- escala Raw->Scaled de G25 ----------
+// Ley empírica calibrada el 2026-09 con dos pares oficiales Raw+Scaled de Davidski
+// (david_ntizar y lolo_casona): Scaled[i] = K[i] * Raw[i], con K constante por eje
+// y estable entre personas (error de reconstrucción < 1e-6 en ambos pares).
+const G25_RAW2SCALED = [11.382315,10.155282,3.771189,3.23,3.077491,2.79,2.35,2.307949,2.045243,1.822371,1.623889,1.498688,1.4866,1.376231,1.357209,1.325865,1.303841,1.26691,1.256918,1.250512,1.247768,1.236482,1.232474,1.20494,1.197547];
+function escalarRawOficial(v){
+  return Float64Array.from({length:25},(_,i)=>v[i]*G25_RAW2SCALED[i]);
+}
+
 // export Node / navegador
 if(typeof module!=='undefined'){
-  module.exports={b64bytes,ungzip,dist,nearest,cleanGT,comp,parseRaw,puntuaRaw,extractCalls,mle,project,parseG25,parseDerived,parseOfficialLines};
+  module.exports={b64bytes,ungzip,dist,nearest,cleanGT,comp,parseRaw,puntuaRaw,extractCalls,mle,project,parseG25,parseDerived,parseOfficialLines,escalarRawOficial};
 }
 if(typeof window!=='undefined'){
-  window.Motor={b64bytes,ungzip,dist,nearest,cleanGT,comp,parseRaw,puntuaRaw,extractCalls,mle,project,parseG25,parseDerived,parseOfficialLines};
+  window.Motor={b64bytes,ungzip,dist,nearest,cleanGT,comp,parseRaw,puntuaRaw,extractCalls,mle,project,parseG25,parseDerived,parseOfficialLines,escalarRawOficial};
 }

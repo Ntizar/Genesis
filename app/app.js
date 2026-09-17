@@ -60,8 +60,13 @@ async function ejecutarEstudio(nombre, texto, fuente){
   try{
     let r;
     if (fuente === 'oficial'){
-      const [of] = Motor.parseOfficialLines(texto);
-      r = estudioDesdeG25(of.name || nombre, of.v, 'oficial' + (of.escala === 'raw' ? ' · raw (sin escalar)' : ''));
+      const of = Motor.parseOfficialLines(texto)[0];
+      let gv = of.v, etiqueta = 'oficial';
+      if (of.escala === 'raw'){
+        gv = Motor.escalarRawOficial(of.v);
+        etiqueta = 'oficial · Raw escalado a Scaled (ley K, 2026-09)';
+      }
+      r = estudioDesdeG25(of.name || nombre, gv, etiqueta);
       r.vecinos = vecinos(r.g25, 25);
       r.nnls = modeloEpocas(r.g25);
       r.modelos = modelosAlternativos(r.g25);
