@@ -48,6 +48,18 @@ function parseRaw(text,name='muestra'){
   return {name:name.replace(/\.(txt|csv|vcf)(\.gz)?$/i,''),map,format:fmt,total:map.size};
 }
 
+// ---------- puntuación "¿es esto un raw de ADN?" (para elegir la entrada correcta de un ZIP) ----------
+function puntuaRaw(t){
+  if (!t || t.length < 500) return {puntos: 0, rs: 0};
+  const rs = (t.match(/rs\d+/gi) || []).length;
+  let puntos = Math.min(rs, 2_000_000);
+  const cab = t.slice(0, 4000);
+  if (/rsid/i.test(cab)) puntos += 500;
+  if (/chromosome|chrom|pos(ition)?/i.test(cab)) puntos += 200;
+  if (/23andMe|AncestryDNA|MyHeritage|LivingDNA|FTDNA|fileformat/i.test(cab)) puntos += 300;
+  return {puntos, rs};
+}
+
 // ---------- cruce con el panel K36 ----------
 function extractCalls(raw,model){
   const {snps,index}=model,calls=[];let flips=0,discord=0;
@@ -111,23 +123,49 @@ function parseDerived(s){
     .filter(x=>x.v.length===25&&!Number.isNaN(x.v[0]));
 }
 function parseOfficialLines(s){
-  const out=[];
-  for(const raw of s.trim().split(/\r?\n/)){
-    if(!raw.trim())continue;
-    const x=raw.split(',').map(v=>v.trim());
-    if(x.length!==26)throw new Error(`«${x[0]||'línea'}»: se esperaban 25 coordenadas y hay ${Math.max(0,x.length-1)}.`);
-    const nums=x.slice(1).map(Number);
-    if(nums.some(v=>!Number.isFinite(v)))throw new Error(`«${x[0]}»: hay valores no numéricos.`);
-    out.push({name:x[0],v:Float64Array.from(nums)});
+  // Acepta el pegado tal cual de Vahaduo/G25-Davidski: bloques «Scaled» y/o «Raw»,
+  // cabeceras sueltas, líneas en blanco, separadores , ; o tab (y espacios),
+  // varias muestras y nombres con espacios. Devuelve [{name, v, escala}] con
+  // Scaled primero (es la escala estándar para distancias y NNLS).
+  const lineas = String(s).replace(/^\uFEFF/,'').trim().split(/\r?\n/);
+  const esNum = t => /^[+-.]?\d/.test(t);
+  const out = []; let escala = null; const ignoradas = [];
+  for (const l of lineas){
+    const t = l.trim();
+    if (!t) continue;
+    // cabecera de bloque («Scaled», «Raw», «G25 Scaled Avg», …): solo si NO lleva números
+    if (!/\d/.test(t)){
+      const low = t.toLowerCase().replace(/[:*#]+$/,'').trim();
+      if (low === 'scaled' || low.startsWith('scaled ') || low.startsWith('g25 scaled')) { escala = 'scaled'; continue; }
+      if (low === 'raw' || low === 'unscaled' || low.startsWith('raw ') || low.startsWith('g25 raw')) { escala = 'raw'; continue; }
+      if (/^[#;<>]/.test(t)) continue; // comentario
+    }
+    // separador: coma/punto y coma/tab; si no parte en suficientes trozos, espacios
+    let x = t.split(/\s*[,;\t]\s*/).map(v=>v.replace(/^"|"$/g,'').trim()).filter(Boolean);
+    if (x.length < 2) x = t.split(/\s+/);
+    // el nombre es todo lo que va antes del primer número
+    let j = 0; while (j < x.length && !esNum(x[j])) j++;
+    const name = j > 0 ? x.slice(0, j).join(' ') : (x[0] || 'muestra');
+    const nums = [];
+    for (let k = j; k < x.length && nums.length < 25; k++){
+      const v = Number(x[k]);
+      if (!Number.isFinite(v)){ nums.length = 0; break; }
+      nums.push(v);
+    }
+    if (nums.length !== 25){ ignoradas.push(t.slice(0, 40)); continue; }
+    out.push({name, v: Float64Array.from(nums), escala: escala || 'scaled'});
   }
-  if(!out.length)throw new Error('No veo líneas válidas con nombre + 25 coordenadas.');
+  if (!out.length){
+    throw new Error('No veo ninguna muestra (nombre + 25 coordenadas). Pega el bloque Scaled de Vahaduo: «nombre,0.12,0.14,…» — ignoro ' + ignoradas.length + ' línea(s) no válida(s).');
+  }
+  out.sort((a, b) => (a.escala === 'scaled' ? 0 : 1) - (b.escala === 'scaled' ? 0 : 1));
   return out;
 }
 
 // export Node / navegador
 if(typeof module!=='undefined'){
-  module.exports={b64bytes,ungzip,dist,nearest,cleanGT,comp,parseRaw,extractCalls,mle,project,parseG25,parseDerived,parseOfficialLines};
+  module.exports={b64bytes,ungzip,dist,nearest,cleanGT,comp,parseRaw,puntuaRaw,extractCalls,mle,project,parseG25,parseDerived,parseOfficialLines};
 }
 if(typeof window!=='undefined'){
-  window.Motor={b64bytes,ungzip,dist,nearest,cleanGT,comp,parseRaw,extractCalls,mle,project,parseG25,parseDerived,parseOfficialLines};
+  window.Motor={b64bytes,ungzip,dist,nearest,cleanGT,comp,parseRaw,puntuaRaw,extractCalls,mle,project,parseG25,parseDerived,parseOfficialLines};
 }

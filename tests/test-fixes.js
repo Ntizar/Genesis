@@ -1,0 +1,114 @@
+// Tests de los 3 fixes críticos (2026-09-17): zip por contenido, parseo G25 tolerante, rasgos con hebra
+'use strict';
+const path = require('path');
+const fs = require('fs');
+const ROOT = path.join(__dirname, '..');
+let fallos = 0;
+function test(nombre, cond, detalle){
+  console.log((cond ? '  OK  ' : '  FAIL') + ' ' + nombre + (cond ? '' : ' :: ' + (detalle || '')));
+  if (!cond) fallos++;
+}
+
+(async () => {
+  const Motor = require(path.join(ROOT, 'js', 'motor.js'));
+
+  /* ---------- 1. parseo G25 tolerante (el caso exacto de David) ---------- */
+  const paste = `Scaled
+
+lolo_casona,0.121791,0.142174,0.054305,0.003876,0.043393,-0.000837,-0.007285,-0.002077,0.021884,0.036812,-0.002923,0.008842,-0.021853,-0.017753,0.011265,0.003315,0.001304,-0.00038,0.001885,0.005002,0.002745,0.005935,-0.005916,-0.009037,0.005868
+
+Raw
+
+lolo_casona,0.0107,0.014,0.0144,0.0012,0.0141,-0.0003,-0.0031,-0.0009,0.0107,0.0202,-0.0018,0.0059,-0.0147,-0.0129,0.0083,0.0025,0.001,-0.0003,0.0015,0.004,0.0022,0.0048,-0.0048,-0.0075,0.0049`;
+  const parses = Motor.parseOfficialLines(paste);
+  test('G25: acepta el paste Scaled+Raw completo', parses.length === 2, 'n=' + parses.length);
+  test('G25: Scaled primero', parses[0].escala === 'scaled', JSON.stringify(parses.map(p => p.escala)));
+  test('G25: 25 coordenadas correctas', parses[0].v.length === 25 && Math.abs(parses[0].v[0] - 0.121791) < 1e-9, parses[0].v[0]);
+  test('G25: Raw también reconocido', parses[1].escala === 'raw' && Math.abs(parses[1].v[1] - 0.014) < 1e-9, 'v1=' + parses[1].v[1]);
+  const p2 = Motor.parseOfficialLines('Mi Muestra A;0.1;0.2;0.3;0.4;0.5;0.6;0.7;0.8;0.9;0.1;0.11;0.12;0.13;0.14;0.15;0.16;0.17;0.18;0.19;0.2;0.21;0.22;0.23;0.24;0.25');
+  test('G25: punto y coma + nombre con espacios', p2.length === 1 && p2[0].name === 'Mi Muestra A', p2[0] && p2[0].name);
+  let lanzo2 = false;
+  try{ Motor.parseOfficialLines('# comentario\nG25 Scaled Avg\nxyz,0.1,0.2'); }catch(e){ lanzo2 = true; }
+  test('G25: comentario + cabecera G25 Scaled Avg → sin muestras → error claro', lanzo2, '');
+  let lanzo = false;
+  try{ Motor.parseOfficialLines('hola'); }catch(e){ lanzo = /No veo ninguna muestra/i.test(e.message); }
+  test('G25: error claro cuando no hay datos', lanzo, '');
+
+  /* ---------- 2. zip: Motor.puntuaRaw existe y prioriza el raw real ---------- */
+  // raw sintético de 1.000 SNP (como hacen los demás tests; demo.txt es un fixture de 3 líneas)
+  const rawDemo = 'rsid\tchromosome\tposition\tallele1\tallele2\n' +
+    Array.from({length: 1000}, (_, i) => `rs${1000000 + i * 7}\t1\t${1000 + i}\tGC\tAT`).join('\n');
+  const s1 = Motor.puntuaRaw(rawDemo);
+  const s2 = Motor.puntuaRaw('README\n\nGracias por tu archivo de AncestryDNA. Visita www.ancestry.com para más información.');
+  const s3 = Motor.puntuaRaw(fs.readFileSync(path.join(ROOT, 'samples', 'demo.txt'), 'utf8'));
+  test('puntuaRaw: raw de 1.000 rsID puntúa alto', s1.puntos > 1000 && s1.rs === 1000, JSON.stringify(s1));
+  test('puntuaRaw: README basura puntúa ~0', s2.puntos === 0, JSON.stringify(s2));
+  test('puntuaRaw: mini-fixture de 3 líneas → 0 (demasiado corto)', s3.puntos === 0, JSON.stringify(s3));
+
+  // zip REAL en memoria con JSZip (el mismo vendor que usa la app)
+  const JSZip = require(path.join(ROOT, 'vendor', 'jszip.min.js'));
+  const zipGen = new JSZip();
+  zipGen.file('AncestryDNA.2023-10-01_notes.txt', 'Notas de tu prueba de ADN de AncestryDNA. Los resultados de ascendencia estiman…');
+  zipGen.file('README.txt', 'Contenido del archivo:\n  * tus_resultados.txt — datos crudos');
+  zipGen.file('AncestryDNA.2023-10-01.txt', rawDemo);
+  const zipBuf = await zipGen.generateAsync({type: 'nodebuffer'});
+
+  // extraer la LÓGICA REAL de selección de app.js y ejecutarla sobre el zip
+  const appSrc = fs.readFileSync(path.join(ROOT, 'app', 'app.js'), 'utf8');
+  const mZip = appSrc.match(/if\s*\(\/\\\.zip\$\/i\.test\(nombre\)\)\{[\s\S]*?\n  \}/);
+  if (!mZip){ test('app.js: bloque zip extraíble', false, 'regex no encontró el bloque'); }
+  else {
+    global.Motor = Motor;
+    global.JSZip = JSZip;
+    global.Response = Response; global.Blob = Blob; global.DecompressionStream = DecompressionStream; global.TextDecoder = TextDecoder;
+    const leerZip = new Function('nombre', 'file', 'Motor', 'JSZip', 'Response', 'Blob', 'DecompressionStream', 'TextDecoder',
+      'return (async () => { ' + mZip[0] + '\n  throw new Error("no zip"); })()');
+    const res = await leerZip('test.zip', zipBuf, Motor, JSZip, Response, Blob, DecompressionStream, TextDecoder);
+    test('ZIP real: elige el raw (no las notas) por contenido', /AncestryDNA\.2023-10-01\.txt$/.test(res.nombre), res.nombre);
+    test('ZIP real: el texto es el raw (800+ rsID)', (res.texto.match(/rs\d+/g) || []).length >= 800, (res.texto.match(/rs\d+/g) || []).length);
+    // y con el raw anidado .txt.gz (estilo 23andMe)
+    const zipGz = new JSZip();
+    const {gzipSync} = require('zlib');
+    zipGz.file('23andMe.raw.txt.gz', gzipSync(Buffer.from(rawDemo)));
+    zipGz.file('informe.pdf', Buffer.from('%PDF-1.4 fake'));
+    const zipBuf2 = await zipGz.generateAsync({type: 'nodebuffer'});
+    const res2 = await leerZip('test2.zip', zipBuf2, Motor, JSZip, Response, Blob, DecompressionStream, TextDecoder);
+    test('ZIP con .txt.gz anidado: elegido y descomprimido', /23andMe\.raw\.txt$/.test(res2.nombre) && (res2.texto.match(/rs\d+/g) || []).length >= 800, res2.nombre);
+  }
+
+  /* ---------- 3. rasgos: hebra y tabla verificada ---------- */
+  // cargar analisis.js en un sandbox mínimo (necesita state/nnls/etc. — extraer solo las funciones)
+  const anSrc = fs.readFileSync(path.join(ROOT, 'app', 'js', 'analisis.js'), 'utf8');
+  const fragmento = anSrc.match(/var RASGOS = \[[\s\S]*?\n\];[\s\S]*?var ALELOS_OK = \{[^\n]*\};[\s\S]*?function rasgosDesdeMapa[\s\S]*?\n\}/);
+  if (!fragmento){ test('analisis.js: bloque rasgos extraíble', false, 'regex no encontró'); }
+  else {
+    const fn = new Function(fragmento[0] + '\nreturn {RASGOS, ALELOS_OK, rasgosDesdeMapa};');
+    const R = fn();
+    // Caso A: chip en minus (23andMe real): rs4988235 AA → forward T/T tolerante
+    const mapaM = new Map([['rs4988235','AA'], ['rs762551','TT'], ['rs1426654','GG'], ['rs12913832','GG'], ['rs1799945','CC'], ['rs1800562','GG'], ['rs182549','TT']]);
+    const outM = R.rasgosDesdeMapa(mapaM, 'minus');
+    const lactM = outM.find(x => x.rs === 'rs4988235');
+    test('Rasgos minus: rs4988235 AA → T/T tolerante', lactM.gt === 'TT' && lactM.nCopias === 2, JSON.stringify({gt: lactM.gt, n: lactM.nCopias}));
+    const cafM = outM.find(x => x.rs === 'rs762551');
+    test('Rasgos minus: rs762551 TT → A/A lento', cafM.gt === 'AA' && cafM.nCopias === 2, JSON.stringify({gt: cafM.gt, n: cafM.nCopias}));
+    const ojosM = outM.find(x => x.rs === 'rs12913832');
+    test('Rasgos minus: rs12913832 GG → C/C marrón (efecto G)', ojosM.gt === 'CC' && ojosM.nCopias === 0, JSON.stringify({gt: ojosM.gt, n: ojosM.nCopias}));
+    // Caso B: chip en forward (MyHeritage): los alelos ya son forward
+    const mapaF = new Map([['rs4988235','TT'], ['rs762551','AA'], ['rs1426654','AA'], ['rs12913832','GG'], ['rs1799945','GG'], ['rs1800562','GG'], ['rs182549','CC']]);
+    const outF = R.rasgosDesdeMapa(mapaF, 'forward');
+    const lactF = outF.find(x => x.rs === 'rs4988235');
+    test('Rasgos forward: rs4988235 TT → tolerante', lactF.nCopias === 2, JSON.stringify({gt: lactF.gt, n: lactF.nCopias}));
+    const pigF = outF.find(x => x.rs === 'rs1426654');
+    test('Rasgos forward: rs1426654 AA → piel clara', pigF.nCopias === 2, JSON.stringify({gt: pigF.gt, n: pigF.nCopias}));
+    // Caso C: alelo imposible → omitido con mensaje
+    const mapaX = new Map([['rs4988235','XX']]);
+    const outX = R.rasgosDesdeMapa(mapaX, 'forward');
+    test('Rasgos: alelo imposible → omitido con aviso', outX[0].nCopias === null && /inesperados/.test(outX[0].texto), outX[0].texto);
+    // Caso D: rs no cubierto
+    const outN = R.rasgosDesdeMapa(new Map(), 'forward');
+    test('Rasgos: rs ausente → mensaje claro', outN.every(x => x.nCopias === null), '');
+  }
+
+  console.log(fallos === 0 ? '\n✅ FIXES VERIFICADOS (zip + G25 + rasgos)' : `\n❌ ${fallos} fallos`);
+  process.exit(fallos === 0 ? 0 : 1);
+})().catch(e => { console.error('ERROR:', e.message, '\n', (e.stack || '').split('\n')[1] || ''); process.exit(2); });

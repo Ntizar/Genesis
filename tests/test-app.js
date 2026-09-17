@@ -81,8 +81,8 @@ function test(nombre, cond, detalle) {
   test('T11 argmax K36 = k3 (ibérico)', (R.k36top[0] || '').startsWith('k3:'), R.k36top[0]);
 
   // rasgos con el mapa del demo (el demo no tiene rs4988235 garantizado, pero la función no debe lanzar)
-  const nrasgos = await ev('rasgosDesdeMapa(state.ultimo.mapa).length');
-  test('T12 rasgos evaluados sin error (6)', nrasgos === 6, nrasgos);
+  const nrasgos = await ev('rasgosDesdeMapa(state.ultimo.mapa, state.ultimo.hebra && state.ultimo.hebra.hebra).length');
+  test('T12 rasgos evaluados sin error (7)', nrasgos === 7, nrasgos);
 
   console.log('\nRESULTADO: ' + (fallos === 0 ? 'TODOS LOS TESTS OK' : fallos + ' FALLOS'));
   process.exit(fallos ? 1 : 0);

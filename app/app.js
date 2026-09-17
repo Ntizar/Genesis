@@ -25,9 +25,28 @@ async function leerFichero(file){
   }
   if (/\.zip$/i.test(nombre)){
     const zip = await JSZip.loadAsync(file);
-    const entrada = Object.keys(zip.files).find(n => /\.(txt|csv|vcf)$/i.test(n));
-    if (!entrada) throw new Error('El ZIP no contiene ningún .txt/.csv/.vcf reconocible.');
-    return {nombre: entrada, texto: await zip.files[entrada].async('string')};
+    const candidatos = [];
+    for (const f of Object.values(zip.files)){
+      if (f.dir) continue;
+      const n = f.name;
+      let texto = null;
+      if (/\.(txt|csv|vcf)$/i.test(n)){
+        texto = await f.async('string');
+      } else if (/\.gz$/i.test(n) && /\.(txt|csv|vcf)\.gz$/i.test(n)){
+        // 23andMe anida el raw como .txt.gz dentro del zip
+        try{
+          const buf = await f.async('arraybuffer');
+          const ab = await new Response(new Blob([buf]).stream().pipeThrough(new DecompressionStream('gzip'))).arrayBuffer();
+          texto = new TextDecoder().decode(ab);
+        }catch(e){ texto = null; }
+      }
+      if (texto == null) continue;
+      const s = Motor.puntuaRaw(texto);
+      if (s.puntos > 0) candidatos.push({nombre: n.replace(/\.gz$/i,''), texto, puntos: s.puntos});
+    }
+    if (!candidatos.length) throw new Error('El ZIP no contiene ningún raw reconocible (un .txt/.csv/.vcf con rsID dentro).');
+    candidatos.sort((a, b) => b.puntos - a.puntos);
+    return {nombre: candidatos[0].nombre, texto: candidatos[0].texto};
   }
   return {nombre, texto: await leer()};
 }
@@ -41,7 +60,7 @@ async function ejecutarEstudio(nombre, texto, fuente){
     let r;
     if (fuente === 'oficial'){
       const [of] = Motor.parseOfficialLines(texto);
-      r = estudioDesdeG25(of.name || nombre, of.v, 'oficial');
+      r = estudioDesdeG25(of.name || nombre, of.v, 'oficial' + (of.escala === 'raw' ? ' · raw (sin escalar)' : ''));
       r.vecinos = vecinos(r.g25, 25);
       r.nnls = modeloEpocas(r.g25);
     } else {
