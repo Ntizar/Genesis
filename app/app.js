@@ -24,6 +24,7 @@ async function leerFichero(file){
     return {nombre: nombre.replace(/\.gz$/i, ''), texto: new TextDecoder().decode(ab)};
   }
   if (/\.zip$/i.test(nombre)){
+    if (typeof JSZip === 'undefined') throw new Error('No se pudo cargar el descompresor ZIP. Recarga la página (Ctrl+F5) e inténtalo de nuevo.');
     const zip = await JSZip.loadAsync(file);
     const candidatos = [];
     for (const f of Object.values(zip.files)){
